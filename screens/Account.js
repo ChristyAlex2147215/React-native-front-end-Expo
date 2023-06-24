@@ -8,23 +8,30 @@ import SubmitButton from '../components/auth/SubmitButton'
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import CircleLogo from '../components/auth/CircleLogo'
+import * as ImagePicker from 'expo-image-picker';
+import axios from 'axios'
 
 const Account = ({navigation}) => {
   const [name,setName]=useState("")
   const [email,setEmail]=useState("")
+  //for the image fetched from the database
   const [image,setImage]=useState(
     {
-      url:"https://cdn.pixabay.com/photo/2023/04/15/17/19/cat-7928232_1280.png",
+      url:"",
       public_id:""
     })
   const [password,setPassword]=useState("")
   const [confirmPassword,setConfirmPassword]=useState("")
   const [loading,setLoading]=useState("")
-  const [editName,setEditName]=useState()
+  const [editName,setEditName]=useState(false)
   const [editEmail,setEditEmail]=useState()
   //fetching the auth info from the context
   const [state,setState]=useContext(AuthContext)
   // console.log("Obtained context is:",state)
+  //for the image to upleaded
+  const [uploadImage,setUploadImage]=useState("")
+  
+
 
  useEffect(()=>
   {
@@ -35,6 +42,56 @@ const Account = ({navigation}) => {
       setEmail(email);
     }
   },[state])
+
+  const handleImageUpload=async()=>
+  {
+    console.log("Get ready to chooose an image as profile picture")
+    let permissionResult=await ImagePicker.requestMediaLibraryPermissionsAsync();
+    console.log("permissoions from the user for media=>",permissionResult)
+    if(permissionResult.granted===false)
+    {
+      alert("Media access Permission required")
+      return
+    }
+    else{
+      let pickerImageResult=await ImagePicker.launchImageLibraryAsync(
+        {allowsEditing:true,
+        aspect:[4,3],
+        base64:true,
+
+        }
+        );
+        if(pickerImageResult.canceled==true)
+        {
+          return;
+        }
+        console.log("Image Picker Result=>",pickerImageResult)
+        let base64Image=`data:image/jpg;baser64,${pickerImageResult.base64}`
+        setUploadImage(base64Image)
+    }
+    
+  }
+
+  const pickImageAsync = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      allowsEditing: true,
+      quality: 1,
+    });
+
+    if (!result.canceled) {
+      console.log("Image upload result is=>",result);
+      setUploadImage(result.uri)
+      setImage({...Image,url:result.uri})
+      //upload the image to the server
+      const data=await axios.post("/upload-image",{image:result.uri});
+      console.log("image upload response =>",data)
+      //update the context user info
+    
+
+    } else {
+      alert('You did not select any image.');
+    }
+  };
 
   const handleSumbmit=async()=>
   {
@@ -113,12 +170,12 @@ const Account = ({navigation}) => {
         <View style={{justifyContent:"center",alignItems:"center"}}>
         <Image source={{uri: image.url}} 
         style={{width:150,height:150,marginTop:20,borderRadius:200}}/>
-        <FontAwesome5 name='camera' size={30} style={{top:-70,zIndex:99,alignSelf:"center",justifyContent:"center"}}/>
+        <FontAwesome5 name='camera' size={30} style={{top:-70,zIndex:99,alignSelf:"center",justifyContent:"center"}} onPress={pickImageAsync}/>
         </View>
         
       )
       :(<TouchableOpacity style={{justifyContent:"center",alignItems:"center",backgroundColor:"pink",width:150,height:150,borderRadius:200}}> 
-        <FontAwesome5 name='camera' size={30} style={{alignSelf:"center",justifyContent:"center",}}/>
+        <FontAwesome5 name='camera' size={30} style={{alignSelf:"center",justifyContent:"center",}} onPress={pickImageAsync}/>
         </TouchableOpacity>
         ) }
     </CircleLogo>
@@ -126,7 +183,7 @@ const Account = ({navigation}) => {
  </View>
     <View style={{flexDirection:"row",alignSelf:"center",marginTop:15}}>
       {editName? (<Text>{state?.user?.name}</Text>):
-      (<TextInput value={setName} onChangeText={onEditName} style={{backgroundColor:"lightgrey"}} placeholder='Enter your name here'/>)}
+      (<TextInput value={name? name:""} onChangeText={onEditName} style={{backgroundColor:"lightgrey"}} placeholder='Enter your name here'/>)}
       <FontAwesome5 name="pen" style={{marginHorizontal:5,paddingTop:2}} onPress={onPressEditName}/>
     </View>
     <View style={{flexDirection:"row",alignSelf:"center",marginVertical:10}} onPress={()=>{onPressEditEmail}}>

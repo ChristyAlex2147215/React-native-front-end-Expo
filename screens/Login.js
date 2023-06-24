@@ -70,11 +70,13 @@ const Signup = (props) => {
            {
             console.log("signin success => ",data)
             alert("sign up success")
-            setState(data)
+            let reposeData=JSON.stringify(data)
+            console.log("Stringified login response data is=>",reposeData)
+            setState(reposeData)
             //saving the data to the local storage
             try
             {
-              await AsyncStorage.setItem('@auth', data)
+              await AsyncStorage.setItem('@auth', reposeData)
             }
             catch(e)
             {
