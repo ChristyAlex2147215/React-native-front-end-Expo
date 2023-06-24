@@ -40,37 +40,78 @@ const Account = ({navigation}) => {
       const {name,email,image}=state?.user;
       setName(name);
       setEmail(email);
+      console.log("In Account page the the Image fetched from the db => ",image)
+      setImage(image)
     }
   },[state])
 
-  const handleImageUpload=async()=>
-  {
-    console.log("Get ready to chooose an image as profile picture")
-    let permissionResult=await ImagePicker.requestMediaLibraryPermissionsAsync();
-    console.log("permissoions from the user for media=>",permissionResult)
-    if(permissionResult.granted===false)
-    {
-      alert("Media access Permission required")
-      return
-    }
-    else{
-      let pickerImageResult=await ImagePicker.launchImageLibraryAsync(
-        {allowsEditing:true,
-        aspect:[4,3],
-        base64:true,
+  // const handleImageUpload=async()=>
+  // {
+  //   console.log("Get ready to chooose an image as profile picture")
+  //   let permissionResult=await ImagePicker.requestMediaLibraryPermissionsAsync();
+  //   console.log("permissoions from the user for media=>",permissionResult)
+  //   if(permissionResult.granted===false)
+  //   {
+  //     alert("Media access Permission required")
+  //     return
+  //   }
+  //   else{
+  //     let pickerImageResult=await ImagePicker.launchImageLibraryAsync(
+  //       {allowsEditing:true,
+  //       aspect:[4,3],
+  //       base64:true,
 
-        }
-        );
-        if(pickerImageResult.canceled==true)
-        {
-          return;
-        }
-        console.log("Image Picker Result=>",pickerImageResult)
-        let base64Image=`data:image/jpg;baser64,${pickerImageResult.base64}`
-        setUploadImage(base64Image)
-    }
+  //       }
+  //       );
+  //       if(pickerImageResult.canceled==true)
+  //       {
+  //         return;
+  //       }
+  //       console.log("Image Picker Result=>",pickerImageResult)
+  //       let base64Image=`data:image/jpg;baser64,${pickerImageResult.base64}`
+  //       setUploadImage(base64Image)
+  //       //handle the upload in server
+  //        const data=await axios.post("/upload-image",{"image":base64Image,"email":email});
+  //        if(!data)
+  //        {
+  //         console.log("Failed in uploading the file")
+  //        }
+
+  //   }
     
-  }
+  // }
+  const handleImageUpload = async () => {
+    console.log("Get ready to choose an image as a profile picture");
+    let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    console.log("Permissions from the user for media:", permissionResult);
+    if (permissionResult.granted === false) {
+      alert("Media access permission required");
+      return;
+    } else {
+      let pickerImageResult = await ImagePicker.launchImageLibraryAsync({
+        allowsEditing: true,
+        aspect: [4, 3],
+        base64: true,
+      });
+      if (pickerImageResult.canceled === true) {
+        return;
+      }
+      console.log("Image Picker Result:", pickerImageResult);
+      let base64Image = `data:image/jpg;base64,${pickerImageResult.base64}`;
+      setUploadImage(base64Image);
+      // Handle the upload in the server
+      try {
+        const response = await axios.post("/upload-image", {
+          image: base64Image,
+          email: email,
+        });
+        console.log("Image upload response:", response.data);
+      } catch (error) {
+        console.error("Failed to upload the file:", error);
+      }
+    }
+  };
+  
 
   const pickImageAsync = async () => {
     let result = await ImagePicker.launchImageLibraryAsync({
@@ -79,12 +120,35 @@ const Account = ({navigation}) => {
     });
 
     if (!result.canceled) {
-      console.log("Image upload result is=>",result);
+      console.log("Image choose result is=>",result);
       setUploadImage(result.uri)
       setImage({...Image,url:result.uri})
       //upload the image to the server
-      const data=await axios.post("/upload-image",{image:result.uri});
-      console.log("image upload response =>",data)
+      // const data=await axios.post("/upload-image",{image:result.uri,email:email});
+      try {
+        const formData = new FormData();
+        formData.append("image", {
+          uri: result.uri,
+          name: "image.jpg", // Provide a desired file name here
+          type: "image/jpeg", // Adjust the file type based on your requirements
+        });
+        formData.append("email", "example@example.com");
+        console.log("form data is=>",formData.image)
+        console.log("form data is=>",formData.email)
+  
+        const response = await axios.post("/upload-image",formData, {
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        });
+  
+        console.log("Image upload response =>", response);
+  
+        // Update the context or perform any other necessary actions with the response
+      } catch (error) {
+        console.error("Image upload error =>", error);
+      }
+      // console.log("image upload response =>",data)
       //update the context user info
     
 
@@ -170,12 +234,12 @@ const Account = ({navigation}) => {
         <View style={{justifyContent:"center",alignItems:"center"}}>
         <Image source={{uri: image.url}} 
         style={{width:150,height:150,marginTop:20,borderRadius:200}}/>
-        <FontAwesome5 name='camera' size={30} style={{top:-70,zIndex:99,alignSelf:"center",justifyContent:"center"}} onPress={pickImageAsync}/>
+        <FontAwesome5 name='camera' size={30} style={{top:-70,zIndex:99,alignSelf:"center",justifyContent:"center"}} onPress={handleImageUpload}/>
         </View>
         
       )
       :(<TouchableOpacity style={{justifyContent:"center",alignItems:"center",backgroundColor:"pink",width:150,height:150,borderRadius:200}}> 
-        <FontAwesome5 name='camera' size={30} style={{alignSelf:"center",justifyContent:"center",}} onPress={pickImageAsync}/>
+        <FontAwesome5 name='camera' size={30} style={{alignSelf:"center",justifyContent:"center",}} onPress={handleImageUpload}/>
         </TouchableOpacity>
         ) }
     </CircleLogo>
