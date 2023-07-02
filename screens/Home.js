@@ -6,7 +6,7 @@ import Footer from "../components/nav/Footer"
 
 const Home = () => {
     const [state,setState]=useContext(AuthContext)
-    console.log("state from the home is :",JSON.stringify(state))
+    console.log("state from the home is =>",JSON.stringify(state))
   return (
     <>
      <StatusBar/>

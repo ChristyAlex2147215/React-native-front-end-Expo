@@ -58,9 +58,7 @@ const Signup = (props) => {
         try{
             console.log(email,password,loading);
             console.log(axios.defaults.baseURL) 
-            const {data}=await axios.post(
-            `/signin`,
-            {email,password})
+            const {data}=await axios.post(`/signin`,{email,password})
            if(data.error)
            {
             alert(data.error)
@@ -68,10 +66,10 @@ const Signup = (props) => {
            }
            else
            {
-            console.log("signin success => ",data)
+            console.log("signin success,response is => ",data)
             alert("sign up success")
             let reposeData=JSON.stringify(data)
-            console.log("Stringified login response data is=>",reposeData)
+            console.log("Stringified login response  is=>",reposeData)
             setState(reposeData)
             //saving the data to the local storage
             try

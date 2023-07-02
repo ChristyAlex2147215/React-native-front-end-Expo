@@ -10,6 +10,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage'
 import CircleLogo from '../components/auth/CircleLogo'
 import * as ImagePicker from 'expo-image-picker';
 import axios from 'axios'
+import { set } from 'mongoose'
 
 const Account = ({navigation}) => {
   const [name,setName]=useState("")
@@ -30,6 +31,7 @@ const Account = ({navigation}) => {
   // console.log("Obtained context is:",state)
   //for the image to upleaded
   const [uploadImage,setUploadImage]=useState("")
+  const [role,setRole]=useState("")
   
 
 
@@ -37,13 +39,21 @@ const Account = ({navigation}) => {
   {
     if(state)
     {
-      const {name,email,image}=state?.user;
-      setName(name);
-      setEmail(email);
-      console.log("In Account page the the Image fetched from the db => ",image)
-      setImage(image)
+      console.log("context data inthe app is =>",state)
+      let Name=state?.user.name;
+      let Email=state?.user.email;
+      let Image=state?.user.image;
+      let Role=state?.user.role;
+      setName(Name);
+      setEmail(Email);
+      setImage(Image)
+      setRole(Role)
+      console.log(Name)
+      console.log(Email)
+      console.log(Image)
+      console.log(Role)
     }
-  },[state])
+  },[state,image])
 
   // const handleImageUpload=async()=>
   // {
@@ -80,14 +90,17 @@ const Account = ({navigation}) => {
   //   }
     
   // }
+
+  //curret function under debugging
   const handleImageUpload = async () => {
-    console.log("Get ready to choose an image as a profile picture");
+    // console.log("Get ready to choose an image as a profile picture");
     let permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    console.log("Permissions from the user for media:", permissionResult);
+    // console.log("Permissions from the user for media:", permissionResult);
     if (permissionResult.granted === false) {
       alert("Media access permission required");
       return;
-    } else {
+    } 
+    else {
       let pickerImageResult = await ImagePicker.launchImageLibraryAsync({
         allowsEditing: true,
         aspect: [4, 3],
@@ -96,67 +109,131 @@ const Account = ({navigation}) => {
       if (pickerImageResult.canceled === true) {
         return;
       }
-      console.log("Image Picker Result:", pickerImageResult);
+      // console.log("Image Picker Result:", pickerImageResult);
       let base64Image = `data:image/jpg;base64,${pickerImageResult.base64}`;
-      setUploadImage(base64Image);
+      // setUploadImage(base64Image);
       // Handle the upload in the server
+      // let token= state && state.token ? state.token:""
       try {
-        const response = await axios.post("/upload-image", {
+        const response = await axios.post("/upload-image", 
+        {
           image: base64Image,
-          email: email,
-        });
-        console.log("Image upload response:", response.data);
-      } catch (error) {
+        }
+        // {
+        //   headers:{
+        //   Authorization:`Bearer ${token}`
+        //           }
+        // }
+        )
+
+        // console.log("Image upload response =>", JSON.stringify(response));
+        // console.log("Image upload response data =>", JSON.stringify(response.data));
+        // console.log("Image upload response data of user=>", JSON.stringify(response.data.updateUser));
+        // console.log("Image upload response data of user img=>", JSON.stringify(response.data.updateUser.image));
+        // const user_data=response.data.updateUser
+        // setImage({url:user_data.image.url,public_id:user_data.image.public_id})
+        //update the context after the image is uploaded succesfully
+        // const tUser=JSON.parse( await AsyncStorage.getItem("@auth"))
+        // tUser.user=response.data.updateUser
+        // console.log("updating the state image alone now =>",tUser)
+        // state.user.image.url=response.data.updateUser.image.url
+        // state.user.image.public_id=response.data.updateUser.image.public_id
+        //new cod ehre
+        const updatedState = {
+          ...state,
+          user: {
+            ...state.user,
+            image: {
+              ...state.user.image,
+              url:response.data.updateUser.image.url,
+              public_id: response.data.updateUser.image.public_id
+            }
+          }
+        };
+        setState(updatedState)
+        
+        // await AsyncStorage.setItem("@auth",JSON.stringify(updatedState))
+        //changing the state after the image updated
+        // setState({...state,user:response})
+        //cahnging the image state
+        // console.log("response url is =>",response.data.updateUser.image.url)
+        // console.log("response public id =>",response.data.updateUser.image.public_id)
+        // setImage( {
+        //   url:state.user.image.url,
+        //   public_id:state.user.image.public_id
+        // })
+        console.log("Image upload response is=>", response.data.updateUser)
+        console.log("After image upload state now is =>", updatedState)
+        console.log("After image upload state image now is =>",image)
+        // setState({...state.user.image,url:response.data.updateUser.image.url,public_id:response.data.updateUser.image.url})
+        setImage(
+          {
+            url:updatedState.user.image.url,
+            public_id:updatedState.user.image.public_id
+
+          }
+        )
+        await AsyncStorage.setItem("@auth",JSON.stringify(updatedState))
+        // setState({...state.user.image,url:response.data.updateUser.image.url})
+        alert("Image have saved succesfully")
+        //end of the image upload here
+
+
+        }
+       catch (error) {
         console.error("Failed to upload the file:", error);
       }
     }
   };
   
 
-  const pickImageAsync = async () => {
-    let result = await ImagePicker.launchImageLibraryAsync({
-      allowsEditing: true,
-      quality: 1,
-    });
 
-    if (!result.canceled) {
-      console.log("Image choose result is=>",result);
-      setUploadImage(result.uri)
-      setImage({...Image,url:result.uri})
-      //upload the image to the server
-      // const data=await axios.post("/upload-image",{image:result.uri,email:email});
-      try {
-        const formData = new FormData();
-        formData.append("image", {
-          uri: result.uri,
-          name: "image.jpg", // Provide a desired file name here
-          type: "image/jpeg", // Adjust the file type based on your requirements
-        });
-        formData.append("email", "example@example.com");
-        console.log("form data is=>",formData.image)
-        console.log("form data is=>",formData.email)
+  //not in use now
+  // const pickImageAsync = async () => {
+  //   let result = await ImagePicker.launchImageLibraryAsync({
+  //     allowsEditing: true,
+  //     quality: 1,
+  //   });
+
+  //   if (!result.canceled) {
+  //     console.log("Image choose result is=>",result);
+  //     setUploadImage(result.uri)
+  //     setImage({...Image,url:result.uri})
+  //     //upload the image to the server
+  //     // const data=await axios.post("/upload-image",{image:result.uri,email:email});
+  //     try {
+  //       const formData = new FormData();
+  //       formData.append("image", {
+  //         uri: result.uri,
+  //         name: "image.jpg", // Provide a desired file name here
+  //         type: "image/jpeg", // Adjust the file type based on your requirements
+  //       });
+  //       formData.append("email", "example@example.com");
+  //       console.log("form data is=>",formData.image)
+  //       console.log("form data is=>",formData.email)
   
-        const response = await axios.post("/upload-image",formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        });
+  //       const response = await axios.post("/upload-image",formData, {
+  //         headers: {
+  //           "Content-Type": "multipart/form-data",
+  //         },
+  //       });
   
-        console.log("Image upload response =>", response);
+  //       console.log("Image upload response =>", response);
   
-        // Update the context or perform any other necessary actions with the response
-      } catch (error) {
-        console.error("Image upload error =>", error);
-      }
-      // console.log("image upload response =>",data)
-      //update the context user info
+  //       // Update the context or perform any other necessary actions with the response
+  //     } catch (error) {
+  //       console.error("Image upload error =>", error);
+  //     }
+  //     // console.log("image upload response =>",data)
+  //     //update the context user info
     
 
-    } else {
-      alert('You did not select any image.');
-    }
-  };
+  //   } else {
+  //     alert('You did not select any image.');
+  //   }
+  // };
 
+  //for the update password functionality
   const handleSumbmit=async()=>
   {
     setLoading(true)
@@ -176,7 +253,7 @@ const Account = ({navigation}) => {
     try{
         console.log(password,confirmPassword,loading);
         console.log(axios.defaults.baseURL) 
-        const {data}=await axios.put(`/update-password`,{email,password})
+        const {data}=await axios.put(`/update-password`,{password})
        if(data.error)
        {
         alert(data.error)
@@ -184,18 +261,44 @@ const Account = ({navigation}) => {
        }
        else
        {
-        console.log("password update success => ",data)
+        console.log("password update success => ", data)
         alert("password update success")
-        setState(data)
+        // setState(data)
         //saving the data to the local storage
         //redirect to home on success
        }
         // redirect to home page
+        setLoading(false)
     }
     catch(err)
     {  
         console.log(err)
     }
+  }
+
+  //fot chnaging the password of the accoount
+  const updatePassword=()=>
+  {
+    //code to change the user password from account page
+    if(password!==confirmPassword)
+    {
+      alert("Passwords dosent match!")
+      return
+    }
+   try
+   {
+    const data=axios.put("/update-password",{password})
+    if(data.status==="fail")
+    {
+      console.log("update failed")
+    }
+   }
+   catch(e)
+   {
+    console.log("An error occures when updating password.")
+   }
+
+
   }
 
   const logOut=async()=>
@@ -230,10 +333,10 @@ const Account = ({navigation}) => {
     {/* Image componet from the components and auth */}
  <View >
  <CircleLogo>
-      {image && image.url ? (
+      {(image && image.url) || state.user.image? (
         <View style={{justifyContent:"center",alignItems:"center"}}>
         <Image source={{uri: image.url}} 
-        style={{width:150,height:150,marginTop:20,borderRadius:200}}/>
+        style={{width:150,height:150,marginTop:20,borderRadius:200,backgroundColor:"lightblue"}}/>
         <FontAwesome5 name='camera' size={30} style={{top:-70,zIndex:99,alignSelf:"center",justifyContent:"center"}} onPress={handleImageUpload}/>
         </View>
         
@@ -246,12 +349,12 @@ const Account = ({navigation}) => {
     
  </View>
     <View style={{flexDirection:"row",alignSelf:"center",marginTop:15}}>
-      {editName? (<Text>{state?.user?.name}</Text>):
-      (<TextInput value={name? name:""} onChangeText={onEditName} style={{backgroundColor:"lightgrey"}} placeholder='Enter your name here'/>)}
+     <Text>{name || ""}</Text>
+     {/* (<TextInput value={name? name:""} onChangeText={onEditName} style={{backgroundColor:"lightgrey"}} placeholder='Enter your name here'/>) */}
       <FontAwesome5 name="pen" style={{marginHorizontal:5,paddingTop:2}} onPress={onPressEditName}/>
     </View>
     <View style={{flexDirection:"row",alignSelf:"center",marginVertical:10}} onPress={()=>{onPressEditEmail}}>
-      <Text>{state?.user?.email}</Text>
+      <Text>{email || ""}</Text>
       <FontAwesome5 name="pen" style={{marginHorizontal:5,paddingTop:2}}/>
     </View>
     

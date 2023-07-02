@@ -39,6 +39,7 @@ const Signup = (props) => {
       navigation.navigate("Signup")
     }   
 
+    // funtionaf for the password to update
       const handleSumbmit=async()=>
       {
         SetLoading(true)
@@ -51,7 +52,7 @@ const Signup = (props) => {
         try{
             console.log(email,loading); 
             const {data}=await axios.post(
-            `${tunnel_API}/forgot-password`,
+            `/forgot-password`,
             {email})
             if(data.error)
             {
